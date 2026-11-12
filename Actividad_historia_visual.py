@@ -36,12 +36,63 @@ CREATE TABLE IF NOT EXISTS decisiones (
 
 conexion.commit()
 
-
 # ==========================================
 # 2. FUNCIONES PARA GUARDAR EL PROGRESO
 # ==========================================
 
+def guardar_escena(escena):
+    cursor.execute("""
+    UPDATE jugador
+    SET escena_actual = ?
+    WHERE id = 1
+    """, (escena,))
+    conexion.commit()
 
+def guardar_decision(decision, escena):
+    cursor.execute("""
+    INSERT INTO decisiones (decision, escena)
+    VALUES (?, ?)
+    """, (decision, escena))
+    conexion.commit()
+    
+def agregar_objeto(objeto):
+    cursor.execute("""
+    SELECT * FROM inventario
+    WHERE objeto = ?
+    """, (objeto,))
+
+    if not cursor.fetchone():
+        cursor.execute("""
+        INSERT INTO inventario (objeto)
+        VALUES (?)
+        """, (objeto,))
+        conexion.commit()
+
+def mostrar_inventario():
+    print("\n--- INVENTARIO ---")
+
+    cursor.execute("SELECT objeto FROM inventario")
+    objetos = cursor.fetchall()
+
+    if objetos:
+        for objeto in objetos:
+            print("-", objeto[0])
+    else:
+        print("Está vacío.")
+
+def elegir_opcion(opciones):
+    print("\n¿Qué quieres hacer?")
+
+    for numero, descripcion in opciones.items():
+        print(numero + ".", descripcion)
+
+    eleccion = input("Elige una opción: ")
+
+    while eleccion not in opciones:
+        print("Opción incorrecta.")
+        eleccion = input("Elige una opción válida: ")
+
+    return eleccion
 # ==========================================
 # 3. CARGAR O CREAR UNA PARTIDA
 # ==========================================
@@ -61,7 +112,6 @@ if jugador:
     )
 
     while opcion not in ["1", "2"]:
-
         opcion = input("Opción incorrecta. Elige 1 o 2: ")
 
     if opcion == "1":
@@ -69,7 +119,6 @@ if jugador:
         nombre = jugador[1]
         escena = jugador[2]
 
-        # Comprobamos si la aventura ya terminó
         if escena == "terminado":
 
             print("\n¡Ya completaste esta aventura!")
@@ -84,28 +133,24 @@ if jugador:
                 opcion = input("Elige 1 o 2: ")
 
             if opcion == "2":
-
                 conexion.close()
                 exit()
 
-            else:
+            nombre = input("\nIngresa tu nombre: ")
+            escena = "inicio"
 
-                nombre = input("\nIngresa tu nombre: ")
-                escena = "inicio"
+            cursor.execute("DELETE FROM inventario")
+            cursor.execute("DELETE FROM decisiones")
 
-                cursor.execute("DELETE FROM inventario")
-                cursor.execute("DELETE FROM decisiones")
+            cursor.execute("""
+            UPDATE jugador
+            SET nombre = ?, escena_actual = ?
+            WHERE id = 111
+            """, (nombre, escena))
 
-                cursor.execute("""
-                UPDATE jugador
-                SET nombre = ?, escena_actual = ?
-                WHERE id = 1
-                """, (nombre, escena))
-
-                conexion.commit()
+            conexion.commit()
 
         else:
-
             print("\nContinuando partida de", nombre)
 
     else:
@@ -135,7 +180,6 @@ else:
     """, (nombre, escena))
 
     conexion.commit()
-
 
 # ==========================================
 # 4. COMIENZO DE LA AVENTURA
@@ -173,16 +217,11 @@ while True:
         guardar_decision(opciones[eleccion], escena)
 
         if eleccion == "1":
-
             escena = "bosque"
-
         else:
-
             escena = "refugio"
 
         guardar_escena(escena)
-
-
     # ======================================
     # ESCENA 2: BOSQUE
     # ======================================
@@ -202,15 +241,11 @@ while True:
         guardar_decision(opciones[eleccion], escena)
 
         if eleccion == "1":
-
             escena = "cueva"
-
         else:
-
             escena = "rio"
 
         guardar_escena(escena)
-
 
     # ======================================
     # ESCENA 3: CUEVA
@@ -232,13 +267,11 @@ while True:
         guardar_decision(opciones[eleccion], escena)
 
         if eleccion == "1":
-
             agregar_objeto("Llave antigua")
 
         escena = "bosque"
 
         guardar_escena(escena)
-
 
     # ======================================
     # ESCENA 4: RIO
@@ -268,19 +301,14 @@ while True:
             llave = cursor.fetchone()
 
             if llave:
-
                 escena = "tesoro"
-
             else:
-
                 escena = "final"
 
         else:
-
             escena = "bosque"
 
         guardar_escena(escena)
-
 
     # ======================================
     # ESCENA 5: REFUGIO
@@ -301,13 +329,11 @@ while True:
         guardar_decision(opciones[eleccion], escena)
 
         if eleccion == "1":
-
             agregar_objeto("Provisiones")
 
         escena = "bosque"
 
         guardar_escena(escena)
-
 
     # ======================================
     # FINAL 1: CON LLAVE
@@ -327,7 +353,6 @@ while True:
 
         break
 
-
     # ======================================
     # FINAL 2: SIN LLAVE
     # ======================================
@@ -346,7 +371,6 @@ while True:
 
         break
 
-
 # ==========================================
 # 5. MOSTRAR HISTORIAL DE DECISIONES
 # ==========================================
@@ -364,20 +388,27 @@ historial = cursor.fetchall()
 
 if historial:
 
-    for decision in historial:
-
+     for decision in historial:
         print("\nEscena:", decision[1])
         print("Decisión:", decision[0])
 
 else:
-
     print("Todavía no tomaste decisiones.")
-
-
+    
 # ==========================================
-# 6. CERRAR LA BASE DE DATOS
+# 6.  MOSTRAR ESTADISTICAS
 # ==========================================
+print("\n--- ESTADISTICAS ---")
 
+print("Jugador:", nombre)
+
+print("Objetos:")
+mostrar_inventario() 
+
+print("Decisiones tomadas:", len(historial))
+# ==========================================
+# 7. CERRAR LA BASE DE DATOS
+# ==========================================
 conexion.close()
 
 print("\nTu progreso fue guardado.")
