@@ -254,19 +254,31 @@ while True:
     elif escena == "cueva":
 
         print("\nEntras en una cueva oscura.")
-        print("Después de caminar unos metros,")
-        print("encuentras una llave antigua.")
 
-        opciones = {
-            "1": "Agarrar la llave y salir",
-            "2": "Ignorar la llave y salir"
-        }
+        cursor.execute("""
+        SELECT 1 FROM inventario
+        WHERE objeto = 'Llave antigua'
+        """)
+        tiene_llave = cursor.fetchone() is not None
+
+        if tiene_llave:
+            print("Ya tienes la llave antigua.")
+            opciones = {
+                "1": "Salir de la cueva"
+            }
+        else:
+            print("Después de caminar unos metros,")
+            print("encuentras una llave antigua.")
+            opciones = {
+                "1": "Agarrar la llave y salir",
+                "2": "Ignorar la llave y salir"
+            }
 
         eleccion = elegir_opcion(opciones)
 
         guardar_decision(opciones[eleccion], escena)
 
-        if eleccion == "1":
+        if eleccion == "1" and not tiene_llave:
             agregar_objeto("Llave antigua")
 
         escena = "bosque"
